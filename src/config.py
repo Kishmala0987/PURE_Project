@@ -24,6 +24,7 @@ TARGETS = [
     "Subject_ID",
     "Task_ID",
 ]
+
 FEATURE_SIZES = [50, 75, 100, 150, 200, 250, 500]
 RANDOM_STATE = 42
 

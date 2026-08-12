@@ -1,56 +1,91 @@
-"""
-model_manager.py
-
-Utilities for saving and loading trained models.
-"""
-
 from pathlib import Path
-import joblib
+import pickle
 
 
 class ModelManager:
-    """Save and load trained models."""
+    """Handles saving and loading trained models."""
 
-    @staticmethod
-    def save_model(
-        model,
-        selected_features,
-        hyperparameters,
-        save_path,
-        preprocessing=None,
+    def __init__(self, base_dir="models"):
+        self.base_dir = Path(base_dir)
+
+    def get_model_path(
+        self,
+        model_name,
+        target,
+        ranking_method,
+        n_features,
     ):
         """
-        Save a trained model and its metadata.
+        Create and return the model path.
 
-        Parameters
-        ----------
-        model : sklearn estimator
-
-        feature_names : list[str]
-
-        hyperparameters : dict
-
-        save_path : str or Path
-
-        preprocessing : optional
+        Example:
+        models/xgboost/Task_ID/ANOVA_Only/Top_50_model.pkl
         """
 
-        save_path = Path(save_path)
-        save_path.parent.mkdir(parents=True, exist_ok=True)
+        model_dir = (
+            self.base_dir
+            / model_name
+            / target
+            / ranking_method
+            /f"{ranking_method}_Top_{n_features}"
+        )
 
-        model_package = {
+        model_dir.mkdir(
+            parents=True,
+            exist_ok=True,
+        )
+
+        return model_dir / "model.pkl"
+
+    def save_model(
+        self,
+        model,
+        feature_names,
+        best_params,
+        target,
+        ranking_method,
+        n_features,
+        model_name="xgboost",
+        preprocessing=None,
+        cv_score=None,
+        label_encoder=None,
+
+    ):
+
+        model_path = self.get_model_path(
+            model_name=model_name,
+            target=target,
+            ranking_method=ranking_method,
+            n_features=n_features,
+        )
+
+        artifact = {
             "model": model,
-            "selected_features": selected_features,
-            "hyperparameters": hyperparameters,
+            "feature_names": list(feature_names),
+            "best_params": best_params,
+            "target": target,
+            "ranking_method": ranking_method,
+            "n_features": n_features,
             "preprocessing": preprocessing,
+            "cv_score": cv_score,
+            "label_encoder": label_encoder,   
+
         }
 
-        joblib.dump(model_package, save_path)
+        with open(model_path, "wb") as f:
+            pickle.dump(
+                artifact,
+                f,
+                protocol=pickle.HIGHEST_PROTOCOL,
+            )
+
+        return model_path
 
     @staticmethod
     def load_model(model_path):
-        """
-        Load a previously saved model package.
-        """
+        model_path = Path(model_path)
 
-        return joblib.load(model_path)
+        with open(model_path, "rb") as f:
+            artifact = pickle.load(f)
+
+        return artifact
